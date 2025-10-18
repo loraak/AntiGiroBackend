@@ -1,4 +1,6 @@
 const mysql = require('mysql2/promise'); 
+const mongoose = require('mongoose'); 
+require('dotenv').config(); 
 
 const pool = mysql.createPool({ 
     host: process.env.DB_HOST || 'localhost', 
@@ -10,7 +12,7 @@ const pool = mysql.createPool({
     queueLimit: 0
 }); 
 
-const testConnection = async () => { 
+const testConnectionMysql = async () => { 
     try { 
         const connection = await pool.getConnection(); 
         console.log('Mysql Conectado'); 
@@ -21,6 +23,25 @@ const testConnection = async () => {
     }
 }; 
 
-testConnection(); 
+const connectMongoDB = async () => { 
+    try { 
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/simbi_iot'); 
+        console.log('MongoDB Conectado'); 
+    } catch (error) { 
+        console.error('Error conectando a MongoDb:', error.mesage); 
+        process.exit(1); 
+    }
+    }; 
 
-module.exports = pool; 
+    const initDatabases = async () => { 
+        await testConnectionMysql(); 
+        await connectMongoDB(); 
+    }
+
+    initDatabases(); 
+
+
+module.exports = {
+    mysql: pool, 
+    mongoose
+}; 

@@ -12,10 +12,10 @@ async function createTestUser() {
 
 try {
     //contraseña
-    const hashedPassword = await bcrypt.hash('spamton4ever', 10);
+    const hashedPassword = await bcrypt.hash('admin', 10);
 
     //cambiar acá
-    await connection.query('INSERT INTO usuarios (nombre, correo, contrasena, rol) VALUES (?, ?, ?, ?)', ['Anthony', 'tenna@gmail.com', hashedPassword, 'admin']);
+    await connection.query('INSERT INTO usuarios (nombre, correo, contrasena, rol) VALUES (?, ?, ?, ?)', ['Admin', 'admin@gmail.com', hashedPassword, 'admin']);
 
     console.log('Usuario creado');
 
