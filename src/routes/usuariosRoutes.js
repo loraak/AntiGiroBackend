@@ -12,7 +12,7 @@ const {verifyToken, isAdmin} = require('../middlewares/auth');
  *       required:
  *         - nombre
  *         - correo
- *         - contraseña
+ *         - contrasena
  *       properties:
  *         id_usuario:
  *           type: integer
@@ -67,7 +67,7 @@ const {verifyToken, isAdmin} = require('../middlewares/auth');
  *       500:
  *         description: Error del servidor
  */
-router.get('/', verifyToken, usuariosController.getAll);
+router.get('/', verifyToken, isAdmin, usuariosController.getAll);
 
 /**
  * @swagger
@@ -99,7 +99,7 @@ router.get('/', verifyToken, usuariosController.getAll);
  *       500:
  *         description: Error del servidor
  */
-router.get('/:id', usuariosController.getById);
+router.get('/:id', verifyToken, isAdmin, usuariosController.getById);
 
 /**
  * @swagger
@@ -116,7 +116,7 @@ router.get('/:id', usuariosController.getById);
  *             required:
  *               - nombre
  *               - correo
- *               - contraseña
+ *               - contrasena
  *             properties:
  *               nombre:
  *                 type: string
@@ -125,7 +125,7 @@ router.get('/:id', usuariosController.getById);
  *                 type: string
  *                 format: email
  *                 example: tenna@gmail.com
- *               contraseña:
+ *               contrasena:
  *                 type: string
  *                 format: password
  *                 example: spamton4ever
@@ -152,7 +152,7 @@ router.get('/:id', usuariosController.getById);
  *       500:
  *         description: Error del servidor
  */
-router.post('/', usuariosController.create);
+router.post('/', verifyToken, isAdmin, usuariosController.create);
 
 /**
  * @swagger
@@ -203,6 +203,6 @@ router.post('/', usuariosController.create);
  *       500:
  *         description: Error del servidor
  */
-router.put('/:id', usuariosController.update);
+router.put('/:id', verifyToken, isAdmin, usuariosController.update);
 
 module.exports = router;

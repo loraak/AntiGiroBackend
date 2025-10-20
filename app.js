@@ -19,13 +19,14 @@ app.use((req, res, next) => {
     next();
 });
 
+// Configuración de Swagger
 const swaggerOptions = {
     definition: {
         openapi: '3.0.0',
         info: {
             title: 'AntiGiro API',
             version: '1.0.0',
-            description: 'API para el sistema AntiGiro',
+            description: 'API para el sistema AntiGiro - Sistema de monitoreo IoT',
             contact: {
                 name: 'AntiGiro Team'
             }
@@ -41,18 +42,72 @@ const swaggerOptions = {
                 bearerAuth: {
                     type: 'http',
                     scheme: 'bearer',
-                    bearerFormat: 'JWT'
+                    bearerFormat: 'JWT',
+                    description: 'Ingresa tu token JWT (sin el prefijo "Bearer")'
+                }
+            },
+            responses: {
+                UnauthorizedError: {
+                    description: 'Token de acceso faltante o inválido',
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {
+                                        type: 'boolean',
+                                        example: false
+                                    },
+                                    message: {
+                                        type: 'string',
+                                        example: 'No se proporcionó token de autenticación'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                ForbiddenError: {
+                    description: 'No tienes permisos suficientes',
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {
+                                        type: 'boolean',
+                                        example: false
+                                    },
+                                    message: {
+                                        type: 'string',
+                                        example: 'Acceso denegado'
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        }
+        },
+        security: [
+            {
+                bearerAuth: []
+            }
+        ]
     },
     apis: ['./src/routes/*.js'] 
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-// Ruta para Swagger UI
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: "AntiGiro API Docs",
+    swaggerOptions: {
+        persistAuthorization: true, 
+        displayRequestDuration: true
+    }
+}));
 
 app.get('/api-docs.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
@@ -65,22 +120,44 @@ app.use('/api', routes);
 app.get('/', (req, res) => {
     res.json({ 
         message: 'AntiGiro Backend API',
-        docs: 'http://localhost:3000/api-docs'
+        version: '1.0.0',
+        docs: 'http://localhost:3000/api-docs',
+        endpoints: {
+            auth: '/api/auth',
+            usuarios: '/api/usuarios',
+            lecturas: '/api/lecturas'
+        }
+    });
+});
+
+// Health check
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'OK',
+        timestamp: new Date().toISOString()
     });
 });
 
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ 
-        error: 'Algo salió mal!',
-        message: err.message 
+    console.error('Error:', err.stack);
+    res.status(err.status || 500).json({ 
+        success: false,
+        error: err.message || '¡Algo salió mal!',
+        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    });
+});
+
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: 'Ruta no encontrada'
     });
 });
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-    console.log(`Servidor: ${PORT}`);
+    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });
 
 module.exports = app;
