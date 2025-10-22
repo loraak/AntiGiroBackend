@@ -20,7 +20,7 @@ async function seedLecturas() {
       const nivel = (parseFloat(peso) / 5 * 100).toFixed(2); // Basado en peso_maximo de 5kg
 
     const lectura = {
-        id_contenedor: 1,
+        id_contenedor: 2,
         timestamp,
         peso: parseFloat(peso),
         nivel: parseFloat(nivel),
