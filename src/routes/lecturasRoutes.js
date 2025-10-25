@@ -10,9 +10,6 @@ const lecturasController = require('../controllers/lecturasController');
  *       type: object
  *       required:
  *         - id_contenedor
- *         - peso
- *         - nivel
- *         - estado_electroiman
  *       properties:
  *         id_contenedor:
  *           type: integer
@@ -26,23 +23,16 @@ const lecturasController = require('../controllers/lecturasController');
  *         estado_electroiman:
  *           type: boolean
  *           example: true
- *         alerta:
- *           type: object
- *           properties:
- *             tipo:
- *               type: string
- *               enum: [llenado, sobrepeso, sensor_error]
- *             mensaje:
- *               type: string
- *             activo:
- *               type: boolean
+ *         timestamp:
+ *           type: string
+ *           format: date-time
  */
 
 /**
  * @swagger
  * tags:
  *   name: Lecturas
- *   description: Gestión de lecturas IoT
+ *   description: Gestión de lecturas IoT de contenedores
  */
 
 /**
@@ -68,7 +58,7 @@ const lecturasController = require('../controllers/lecturasController');
  *           type: integer
  *     responses:
  *       200:
- *         description: Lista de lecturas
+ *         description: Lista de lecturas consolidadas
  */
 router.get('/', lecturasController.getAll);
 
@@ -76,7 +66,7 @@ router.get('/', lecturasController.getAll);
  * @swagger
  * /api/lecturas/alertas:
  *   get:
- *     summary: Obtener lecturas con alertas activas
+ *     summary: Obtener alertas activas
  *     tags: [Lecturas]
  *     parameters:
  *       - in: query
@@ -85,7 +75,7 @@ router.get('/', lecturasController.getAll);
  *           type: integer
  *     responses:
  *       200:
- *         description: Lista de alertas
+ *         description: Lista de alertas activas
  */
 router.get('/alertas', lecturasController.getAlertas);
 
@@ -93,7 +83,7 @@ router.get('/alertas', lecturasController.getAlertas);
  * @swagger
  * /api/lecturas/contenedor/{id}:
  *   get:
- *     summary: Obtener lecturas de un contenedor específico
+ *     summary: Obtener lecturas de un contenedor
  *     tags: [Lecturas]
  *     parameters:
  *       - in: path
@@ -136,53 +126,10 @@ router.get('/contenedor/:id', lecturasController.getByContenedor);
  *           type: integer
  *     responses:
  *       200:
- *         description: Última lectura
+ *         description: Última lectura disponible
  *       404:
  *         description: No hay lecturas
  */
 router.get('/contenedor/:id/ultima', lecturasController.getUltima);
-
-/**
- * @swagger
- * /api/lecturas/contenedor/{id}/estadisticas:
- *   get:
- *     summary: Obtener estadísticas de un contenedor
- *     tags: [Lecturas]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *       - in: query
- *         name: dias
- *         schema:
- *           type: integer
- *           default: 7
- *     responses:
- *       200:
- *         description: Estadísticas del contenedor
- */
-router.get('/contenedor/:id/estadisticas', lecturasController.getEstadisticas);
-
-/**
- * @swagger
- * /api/lecturas:
- *   post:
- *     summary: Crear nueva lectura (endpoint para IoT)
- *     tags: [Lecturas]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/Lectura'
- *     responses:
- *       201:
- *         description: Lectura creada
- *       400:
- *         description: Error de validación
- */
-router.post('/', lecturasController.create);
 
 module.exports = router;

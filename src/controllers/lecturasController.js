@@ -1,218 +1,249 @@
-const Lectura = require('../models/Lectura');
+const LecturaPeso = require('../models/LecturaPeso'); 
+const LecturaNivel = require('../models/LecturaNivel'); 
+const EventoElectroiman = require('../models/EventoElectroiman'); 
+const Alerta = require('../models/Alerta');
 
-const getAll = async (req, res) => {
-try {
-    const { page = 1, limit = 50, id_contenedor } = req.query;
-    
-    const filter = {};
-    if (id_contenedor) {
-        filter.id_contenedor = parseInt(id_contenedor);
-    }
+const getAll = async (req, res) => { 
+    try { 
+        const { page = 1, limit = 50, id_contenedor } = req.query; 
 
-    const lecturas = await Lectura.find(filter)
-        .sort({ timestamp: -1 }) 
-        .limit(limit * 1)
-        .skip((page - 1) * limit)
-        .lean();
-
-    const total = await Lectura.countDocuments(filter);
-
-    res.json({
-        success: true,
-        data: lecturas,
-        pagination: {
-            total,
-            page: parseInt(page),
-            pages: Math.ceil(total / limit)
+        const filter = {}; 
+        if (id_contenedor) { 
+            filter.id_contenedor = parseInt(id_contenedor); 
         }
-        });
-    } catch (error) {
-        console.error('Error obteniendo lecturas:', error);
+
+        const skip = (page - 1) * limit; 
+        const [pesos, niveles, electroiman] = await Promise.all([
+            LecturaPeso.find(filter) 
+                .sort({ timestamp: -1 })
+                .limit(parseInt(limit))
+                .skip(skip)
+                .lean(), 
+            LecturaNivel.find(filter)
+                .sort({ timestamp: -1 })
+                .limit(parseInt(limit))
+                .skip(skip)
+                .lean(), 
+            EventoElectroiman.find(filter)
+                .sort({ timestamp: -1 })
+                .limit(parseInt(limit))
+                .skip(skip)
+                .lean()
+        ]); 
+
+        const lecturasConsolidadas = consolidarLecturas(pesos, niveles, electroiman); 
+
+        const total = await LecturaPeso.countDocuments(filter); 
+
+        res.json({
+            success: true, 
+            data: lecturasConsolidadas, 
+            pagination: { 
+                total, 
+                page: parseInt(page), 
+                pages: Math.ceil(total / limit)
+            }
+        }); 
+    } catch (error) { 
+        console.error('Error obteniendo lecturas:', error); 
         res.status(500).json({
-        success: false,
-        message: 'Error obteniendo lecturas'
-        });
+            success: false, 
+            message: 'Error obteniendo lecturas'
+        }); 
     }
-};
+}; 
 
-// Obtener lecturas por contenedor
-const getByContenedor = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { limit = 100, desde, hasta } = req.query;
+const getByContenedor = async (req, res) => { 
+    try { 
+        const { id } = req.params; 
+        const { limit = 100, desde, hasta } = req.query; 
 
-    const filter = { id_contenedor: parseInt(id) };
+        const filter = { id_contenedor: parseInt(id) }; 
 
-    if (desde || hasta) {
-        filter.timestamp = {};
-        if (desde) filter.timestamp.$gte = new Date(desde);
-        if (hasta) filter.timestamp.$lte = new Date(hasta);
-    }
-
-    const lecturas = await Lectura.find(filter)
-        .sort({ timestamp: -1 })
-        .limit(parseInt(limit))
-        .lean();
-
-    res.json({
-        success: true,
-        data: lecturas,
-        total: lecturas.length
-    });
-} catch (error) {
-    console.error('Error obteniendo lecturas por contenedor:', error);
-    res.status(500).json({
-        success: false,
-        message: 'Error obteniendo lecturas'    
-    });
-    }
-};
-
-// Obtener última lectura de un contenedor
-const getUltima = async (req, res) => {
-try {
-    const { id } = req.params;
-
-    const lectura = await Lectura.findOne({ id_contenedor: parseInt(id) })
-        .sort({ timestamp: -1 })
-        .lean();
-
-    if (!lectura) {
-        return res.status(404).json({
-            success: false,
-            message: 'No se encontraron lecturas para este contenedor'
-        });
-    }
-
-    res.json({
-        success: true,
-        data: lectura
-    });
-} catch (error) {
-    console.error('Error obteniendo última lectura:', error);
-    res.status(500).json({
-        success: false,
-        message: 'Error obteniendo lectura'
-        });
-}
-};
-
-const create = async (req, res) => {
-try {
-    const lectura = new Lectura(req.body);
-    await lectura.save();
-
-    res.status(201).json({
-        success: true,
-        message: 'Lectura registrada exitosamente',
-        data: lectura
-    });
-} catch (error) {
-    console.error('Error creando lectura:', error);
-    
-    if (error.name === 'ValidationError') {
-    return res.status(400).json({
-        success: false,
-        message: 'Error de validación',
-        errors: Object.values(error.errors).map(e => e.message)
-    });
-    }
-
-    res.status(500).json({
-        success: false,
-        message: 'Error creando lectura'
-    });
-}
-};
-
-// Obtener estadísticas de un contenedor
-const getEstadisticas = async (req, res) => {
-try {
-    const { id } = req.params;
-    const { dias = 7 } = req.query;
-
-    const fechaInicio = new Date();
-    fechaInicio.setDate(fechaInicio.getDate() - parseInt(dias));
-
-    const stats = await Lectura.aggregate([
-        {
-            $match: {
-            id_contenedor: parseInt(id),
-            timestamp: { $gte: fechaInicio }
-            }
-        },
-        {
-            $group: {
-            _id: null,
-            peso_promedio: { $avg: '$peso' },
-            peso_maximo: { $max: '$peso' },
-            peso_minimo: { $min: '$peso' },
-            nivel_promedio: { $avg: '$nivel' },
-            nivel_maximo: { $max: '$nivel' },
-            total_lecturas: { $sum: 1 },
-            alertas_activas: {
-                $sum: { $cond: ['$alerta.activo', 1, 0] }
-            }
-            }
+        if (desde || hasta) { 
+            filter.timestamp = {}; 
+            if (desde) filter.timestamp.$gte = new Date(desde); 
+            if (hasta) filter.timestamp.$lte = new Date(hasta); 
         }
-    ]);
 
-    if (stats.length === 0) {
-        return res.status(404).json({
-            success: false,
-            message: 'No hay datos para calcular estadísticas'
+        const [pesos, niveles, electroiman] = await Promise.all([
+            LecturaPeso.find(filter)
+                .sort({ timestamp: -1 })
+                .limit(parseInt(limit))
+                .lean(), 
+            LecturaNivel.find(filter) 
+                .sort({ timestamp: -1 })
+                .limit(parseInt(limit))
+                .lean(), 
+            EventoElectroiman.find(filter) 
+                .sort({ timestamp: -1 })
+                .limit(parseInt(limit))
+                .lean()
+        ]); 
+
+        const lecturasConsolidadas = consolidarLecturas(pesos, niveles, electroiman); 
+
+        res.json({
+            success: true, 
+            data: lecturasConsolidadas, 
+            total: lecturasConsolidadas.length
+        }); 
+    } catch (error) { 
+        console.error('Error obteniendo lecturas por contenedor:', error); 
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error obteniendo lecturas'
+        }); 
+    }
+}; 
+
+const getUltima = async (req, res) => { 
+    try { 
+        const { id } = req.params; 
+        const filter = { id_contenedor: parseInt(id) }; 
+
+        const [ultimoPeso, ultimoNivel, ultimoElectroiman] = await Promise.all([
+            LecturaPeso.findOne(filter).sort({ timestamp: -1 }).lean(), 
+            LecturaNivel.findOne(filter).sort({ timestamp: -1 }).lean(), 
+            EventoElectroiman.findOne(filter).sort({ timestamp: -1 }).lean()
+        ]); 
+
+        if (!ultimoPeso && !ultimoNivel && !ultimoElectroiman) { 
+            return res.status(404).json({
+                success: false, 
+                message: 'No se encontraron lecturas para este contenedor'
+            }); 
+        }
+
+        const lectura = { 
+            id_contenedor: parseInt(id), 
+            timestamp: ultimoPeso?.timestamp || ultimoNivel?.timestamp || ultimoElectroiman?.timestamp, 
+            peso: ultimoPeso?.peso || null, 
+            nivel: ultimoNivel?.nivel || null, 
+            estado_electroiman: ultimoElectroiman?.estado || null
+        }; 
+
+        res.json({
+            success: true, 
+            data: lectura 
+        }); 
+    } catch (error) {  
+        console.error('Error obteniendo última lectura:', error); 
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error obteniendo lectura'
+        }); 
+    }
+}; 
+
+const getAlertas = async (req, res) => { 
+    try { 
+        const { id_contenedor } = req.query; 
+
+        const filter = { activo: true }; 
+        if (id_contenedor) { 
+            filter.id_contenedor = parseInt(id_contenedor); 
+        }
+
+        const alertas = await Alerta.find(filter)
+            .sort({ timestamp_inicio: -1 })
+            .limit(50)
+            .lean(); 
+
+        const alertasFormateadas = alertas.map(alerta => ({ 
+            id_contenedor: alerta.id_contenedor, 
+            timestamp: alerta.timestamp_inicio, 
+            peso: alerta.datos_relacionados?.peso_actual || null, 
+            nivel: alerta.datos_relacionados?.nivel_actual || null, 
+            alerta: { 
+                tipo: alerta.tipo, 
+                mensaje: alerta.mensaje, 
+                activo: alerta.activo
+            }
+        })); 
+
+        res.json({ 
+            success: true, 
+            data: alertasFormateadas, 
+            total: alertasFormateadas.length 
+        }); 
+    } catch (error) { 
+        console.error('Error obteniendo alertas:', error); 
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al obtener alertas'
+        }); 
+    }
+}; 
+
+function consolidarLecturas(pesos, niveles, electroiman) { 
+    const todasLasLecturas = [];
+
+    pesos.forEach(p => {
+        todasLasLecturas.push({
+            id_contenedor: p.id_contenedor,
+            timestamp: p.timestamp,
+            peso: p.peso,
+            nivel: null,
+            estado_electroiman: null,
+            _timestamp_ms: p.timestamp.getTime()
         });
+    });
+
+    niveles.forEach(n => {
+        todasLasLecturas.push({
+            id_contenedor: n.id_contenedor,
+            timestamp: n.timestamp,
+            peso: null,
+            nivel: n.nivel,
+            estado_electroiman: null,
+            _timestamp_ms: n.timestamp.getTime()
+        });
+    });
+
+    electroiman.forEach(e => {
+        todasLasLecturas.push({
+            id_contenedor: e.id_contenedor,
+            timestamp: e.timestamp,
+            peso: null,
+            nivel: null,
+            estado_electroiman: e.estado,
+            _timestamp_ms: e.timestamp.getTime()
+        });
+    });
+
+    if (todasLasLecturas.length === 0) {
+        return [];
     }
 
-    res.json({
-        success: true,
-        data: {
-            periodo_dias: parseInt(dias),
-            ...stats[0]
+    todasLasLecturas.sort((a, b) => b._timestamp_ms - a._timestamp_ms);
+
+    const consolidadas = [];
+    const TOLERANCIA_MS = 5000; 
+
+    todasLasLecturas.forEach(lectura => {
+        const lecturaExistente = consolidadas.find(c => 
+            c.id_contenedor === lectura.id_contenedor &&
+            Math.abs(c._timestamp_ms - lectura._timestamp_ms) < TOLERANCIA_MS
+        );
+
+        if (lecturaExistente) {
+            if (lectura.peso !== null) lecturaExistente.peso = lectura.peso;
+            if (lectura.nivel !== null) lecturaExistente.nivel = lectura.nivel;
+            if (lectura.estado_electroiman !== null) lecturaExistente.estado_electroiman = lectura.estado_electroiman;
+        } else {
+            consolidadas.push({ ...lectura });
         }
     });
-} catch (error) {
-    console.error('Error obteniendo estadísticas:', error);
-    res.status(500).json({
-        success: false,
-        message: 'Error obteniendo estadísticas'
-    });
+
+    consolidadas.forEach(c => delete c._timestamp_ms);
+
+    return consolidadas;
 }
-};
 
-const getAlertas = async (req, res) => {
-try {
-    const { id_contenedor } = req.query;
-
-    const filter = { 'alerta.activo': true };
-    if (id_contenedor) {
-        filter.id_contenedor = parseInt(id_contenedor);
-    }
-
-    const alertas = await Lectura.find(filter)
-        .sort({ timestamp: -1 })
-        .limit(50)
-        .lean();
-
-    res.json({
-        success: true,
-        data: alertas,
-        total: alertas.length
-    });
-} catch (error) {
-    console.error('Error obteniendo alertas:', error);
-    res.status(500).json({
-        success: false,
-        message: 'Error obteniendo alertas'
-    });
-}
-};
-
-module.exports = {
-    getAll,
-    getByContenedor,
-    getUltima,
-    create,
-    getEstadisticas,
+module.exports = { 
+    getAll, 
+    getByContenedor, 
+    getUltima, 
     getAlertas
 };
