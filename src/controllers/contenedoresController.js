@@ -72,9 +72,23 @@ const create = async(req, res) => {
 
 const update = async (req, res) => { 
     try { 
-        const { nombre, ubicacion, peso_maximo, nivel_alerta } = req.body; 
+        const { nombre, ubicacion, peso_maximo, nivel_alerta, activo, id_usuario } = req.body; 
 
-        const contenedor = await Contenedor.update(req.params.id, { nombre, ubicacion, peso_maximo, nivel_alerta}); 
+        if (!id_usuario) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'ID de usuario requerido'
+            }); 
+        }
+
+        const contenedor = await Contenedor.update(req.params.id, { 
+            nombre, 
+            ubicacion, 
+            peso_maximo, 
+            nivel_alerta,
+            activo,
+            id_usuario 
+        }); 
 
         if (!contenedor) { 
             return res.status(404).json({ 
@@ -85,17 +99,18 @@ const update = async (req, res) => {
 
         res.json({ 
             success: true, 
-            message: 'Contenedor actualizado', 
+            message: 'Contenedor actualizado exitosamente', 
             data: contenedor
         }); 
     } catch (error) { 
-        console.error('Error actualizando contenedor: ', error); 
+        console.error('Error actualizando contenedor:', error); 
         res.status(500).json({ 
             success: false, 
-            message: 'Error actualizando contenedor'
+            message: 'Error actualizando contenedor',
+            error: error.message
         }); 
-    }; 
-}
+    }
+};
 
 const deleteContenedor = async (req, res) => { 
     try { 

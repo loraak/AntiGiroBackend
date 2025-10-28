@@ -18,11 +18,15 @@ class Contenedor {
     }
 
     static async update(id, data) { 
-        const { nombre, peso_maximo, nivel_alerta } = data; 
+    const { nombre, ubicacion, peso_maximo, nivel_alerta, activo, id_usuario } = data; 
 
-        await db.query('UPDATE contenedores SET nombre = ?, peso_maximo = ?, nivel_alerta = ? WHERE id_contenedor = ?', [nombre, peso_maximo, nivel_alerta, id]); 
-        return this.findById(id); 
-    }
+    await db.query(
+        `UPDATE contenedores SET nombre = ?, ubicacion = ?,peso_maximo = ?, nivel_alerta = ?,activo = ?,actualizado_en = NOW(),actualizado_por = ? WHERE id_contenedor = ?`, 
+        [nombre, ubicacion, peso_maximo, nivel_alerta, activo, id_usuario, id]
+    ); 
+    
+    return this.findById(id); 
+}
 
     static async delete(id) { 
         await db.query('UPDATE contenedores SET activo = FALSE where id_contenedor = ?', [id]); 
