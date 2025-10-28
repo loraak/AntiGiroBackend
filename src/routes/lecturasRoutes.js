@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const lecturasController = require('../controllers/lecturasController');
+const {verifyToken, isAdmin} = require('../middlewares/auth');
 
 /**
  * @swagger

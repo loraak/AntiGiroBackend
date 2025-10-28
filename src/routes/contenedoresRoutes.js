@@ -42,6 +42,7 @@ const { verifyToken, isAdmin } = require('../middlewares/auth');
  *           format: date-time
  */
 
+
 /**
  * @swagger
  * tags:
@@ -49,7 +50,7 @@ const { verifyToken, isAdmin } = require('../middlewares/auth');
  *   description: Gestión de contenedores IoT
  */
 
-// Todas las rutas requieren autenticación
+router.use(verifyToken);
 
 /**
  * @swagger
