@@ -175,7 +175,7 @@ router.post('/', isAdmin, contenedoresController.create);
  *       404:
  *         description: Contenedor no encontrado
  */
-router.put('/:id', contenedoresController.update);
+router.put('/:id', isAdmin, contenedoresController.update);
 
 /**
  * @swagger

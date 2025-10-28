@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const lecturasController = require('../controllers/lecturasController');
-const {verifyToken, isAdmin} = require('../middlewares/auth');
+const {verifyToken} = require('../middlewares/auth');
 
 /**
  * @swagger
@@ -35,6 +35,8 @@ const {verifyToken, isAdmin} = require('../middlewares/auth');
  *   name: Lecturas
  *   description: Gestión de lecturas IoT de contenedores
  */
+
+router.use(verifyToken);
 
 /**
  * @swagger
