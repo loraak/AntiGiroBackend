@@ -23,6 +23,38 @@ class Usuario {
         return await bcrypt.compare(plainPassword, hashedPassword); 
     }
 
+    static async incrementarIntentosFallidos(id) { 
+        await db.query('UPDATE usuarios SET intentos_fallidos = intentos_fallidos + 1, ultimo_intento = NOW() WHERE id_usuario = ?', [id]);
+    }
+
+    static async bloquearUsuario(id, minutos = 15) { 
+        await db.query('UPDATE usuarios SET bloqueado_hasta = DATE_ADD(NOW(), INTERVAL ? MINUTE), ultimo_intento = NOW() WHERE id_usuario = ?', [minutos, id]);
+    }
+
+    static async resetearIntentos(id) { 
+        await db.query('UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id_usuario = ?', [id]);
+    }
+
+    static async estaBloqueado(id) { 
+        const [rows] = await db.query('SELECT bloqueado_hasta, TIMESTAMPDIFF(MINUTE, NOW(), bloqueado_hasta) AS minutos_restantes FROM usuarios WHERE id_usuario = ?', [id]);
+
+        if (!rows[0] || !rows[0].bloqueado_hasta) {
+            return {bloqueado: false}; 
+        }
+
+        const ahora = new Date(); 
+        const bloqueadoHasta = new Date(rows[0].bloqueado_hasta);
+
+        if (ahora < bloqueadoHasta) {
+            return { 
+                bloqueado: true, 
+                minutos_restantes: rows[0].minutos_restantes
+            }; 
+        }
+        await this.resetearIntentos(id); 
+        return {bloqueado: false};
+    }
+
     static async create(userData) { 
         const {nombre, correo, contrasena, rol} = userData; 
 
