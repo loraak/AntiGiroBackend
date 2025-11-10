@@ -5,6 +5,7 @@ require('dotenv').config();
 const pool = mysql.createPool({ 
     host: process.env.DB_HOST || 'localhost', 
     user: process.env.DB_USER || 'root', 
+    port: process.env.DB_PORT || 3306,
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'simrbi',
     waitForConnections: true, 
@@ -14,34 +15,52 @@ const pool = mysql.createPool({
 
 const testConnectionMysql = async () => { 
     try { 
+        console.log('Intentando conectar a MySQL...'); 
+        console.log('Host:', process.env.DB_HOST || 'localhost');
+        console.log('User:', process.env.DB_USER || 'root');
+        console.log('Database:', process.env.DB_NAME || 'simrbi');
+        
         const connection = await pool.getConnection(); 
-        console.log('Mysql Conectado'); 
+        console.log('MySQL Conectado'); 
         connection.release(); 
     } catch (error) { 
-        console.error('Error en la conexión: ', error.message); 
+        console.error('Error completo:', error); 
         process.exit(1); 
     }
-}; 
+};
 
 const connectMongoDB = async () => { 
     try { 
         await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/SIMBI_iot'); 
         console.log('MongoDB Conectado'); 
+        return true;
     } catch (error) { 
-        console.error('Error conectando a MongoDb:', error.mesage); 
-        process.exit(1); 
+        console.error('Error conectando a MongoDB:', error.message); 
+        return false;
     }
-    }; 
+}; 
 
-    const initDatabases = async () => { 
-        await testConnectionMysql(); 
-        await connectMongoDB(); 
+const initDatabases = async () => { 
+    const mysqlConnected = await testConnectionMysql(); 
+    const mongoConnected = await connectMongoDB();
+    
+    if (!mysqlConnected && !mongoConnected) {
+        console.error('No se pudo conectar a ninguna base de datos');
+        process.exit(1);
     }
+    
+    if (!mysqlConnected) {
+        console.warn('Continuando sin MySQL');
+    }
+    
+    if (!mongoConnected) {
+        console.warn('Continuando sin MongoDB');
+    }
+}
 
-    initDatabases(); 
-
+initDatabases(); 
 
 module.exports = {
     mysql: pool, 
     mongoose
-}; 
+};
