@@ -1,6 +1,16 @@
 const mysql = require('mysql2/promise'); 
 const mongoose = require('mongoose'); 
-require('dotenv').config(); 
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').config();
+}
+
+console.log('Variables de entorno en producción:');
+console.log({
+    DB_HOST: process.env.DB_HOST,
+    DB_USER: process.env.DB_USER,
+    DB_NAME: process.env.DB_NAME,
+    DB_PORT: process.env.DB_PORT
+});
 
 const pool = mysql.createPool({ 
     host: process.env.DB_HOST || 'localhost', 
