@@ -31,7 +31,7 @@ const testConnectionMysql = async () => {
 
 const connectMongoDB = async () => { 
     try { 
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/SIMBI_iot'); 
+        await mongoose.connect(process.env.MONGODB_URI); 
         console.log('MongoDB Conectado'); 
         return true;
     } catch (error) { 
