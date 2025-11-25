@@ -32,6 +32,10 @@ const swaggerOptions = {
         },
         servers: [
             {
+                url: 'https://antigirobackend-production.up.railway.app/',
+                description: 'Servidor de Producción (Railway)'
+            },
+            {
                 url: 'http://localhost:3000',
                 description: 'Servidor de desarrollo'
             }
