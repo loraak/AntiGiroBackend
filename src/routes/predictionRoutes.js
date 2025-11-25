@@ -38,7 +38,7 @@ const { verifyToken } = require('../middlewares/auth');
  *   description: Predicciones de llenado con modelo LSTM
  */
 
-// Aplicar autenticación a todas las rutas
+router.use(verifyToken);
 
 /**
  * @swagger

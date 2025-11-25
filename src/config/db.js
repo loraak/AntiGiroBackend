@@ -25,10 +25,10 @@ const testConnectionMysql = async () => {
         const connection = await pool.getConnection(); 
         console.log('MySQL Conectado'); 
         connection.release(); 
-        return true; // ✅ Añadido
+        return true;
     } catch (error) { 
         console.error('Error completo al conectar MySQL:', error); 
-        return false; // ✅ Cambiado de process.exit(1)
+        return false; 
     }
 };
 
@@ -58,11 +58,11 @@ const initDatabases = async () => {
     }
     
     if (!mysqlConnected) {
-        console.warn('⚠️ Continuando sin MySQL');
+        console.warn('Continuando sin MySQL');
     }
     
     if (!mongoConnected) {
-        console.warn('⚠️ Continuando sin MongoDB');
+        console.warn('Continuando sin MongoDB');
     }
 }
 

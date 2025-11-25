@@ -5,8 +5,10 @@ const AlertaService = require('../services/alertaServices');
 
 const crearLecturaPeso = async (req, res) => {
     try {
+        
         const nueva = new LecturaPeso(req.body);
         await nueva.save();
+
 
         await AlertaService.procesarAlertaPeso({
             id_contenedor: nueva.id_contenedor,
@@ -21,18 +23,24 @@ const crearLecturaPeso = async (req, res) => {
         });
     } catch (error) {
         console.error('Error guardando peso:', error);
+        console.error('Detalles del error:', JSON.stringify(error.errInfo, null, 2));
+        console.error('Datos recibidos:', JSON.stringify(req.body, null, 2));
+        
         res.status(400).json({
             success: false,
             message: 'Error guardando lectura de peso',
-            error: error.message
+            error: error.message,
+            details: error.errInfo 
         });
     }
 };
 
 const crearLecturaNivel = async (req, res) => {
     try {
+        
         const nueva = new LecturaNivel(req.body);
         await nueva.save();
+
 
         await AlertaService.procesarAlertaNivel({
             id_contenedor: nueva.id_contenedor,
@@ -47,18 +55,24 @@ const crearLecturaNivel = async (req, res) => {
         });
     } catch (error) {
         console.error('Error guardando nivel:', error);
+        console.error('Detalles del error:', JSON.stringify(error.errInfo, null, 2));
+        console.error('Datos recibidos:', JSON.stringify(req.body, null, 2));
+        
         res.status(400).json({
             success: false,
             message: 'Error guardando lectura de nivel',
-            error: error.message
+            error: error.message,
+            details: error.errInfo 
         });
     }
 };
 
 const crearEventoElectroiman = async (req, res) => {
     try {
+        
         const nuevo = new EventoElectroiman(req.body);
         await nuevo.save();
+                
         res.status(201).json({
             success: true,
             mensaje: 'Evento de electroimán guardado',
@@ -66,15 +80,18 @@ const crearEventoElectroiman = async (req, res) => {
         });
     } catch (error) {
         console.error('Error guardando evento electroimán:', error);
+        console.error('Detalles del error:', JSON.stringify(error.errInfo, null, 2));
+        console.error('Datos recibidos:', JSON.stringify(req.body, null, 2));
+        
         res.status(400).json({
             success: false,
             message: 'Error guardando evento de electroimán',
-            error: error.message
+            error: error.message,
+            details: error.errInfo
         });
     }
 };
 
-// Obtener todas las alertas activas
 const obtenerAlertasActivas = async (req, res) => {
     try {
         const { id_contenedor } = req.query;
@@ -97,7 +114,6 @@ const obtenerAlertasActivas = async (req, res) => {
     }
 };
 
-// Obtener historial de alertas
 const obtenerHistorialAlertas = async (req, res) => {
     try {
         const { id_contenedor, limite } = req.query;

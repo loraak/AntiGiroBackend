@@ -152,12 +152,7 @@ const getAlertas = async (req, res) => {
     try { 
         const { id_contenedor } = req.query; 
 
-        const filter = { activo: true }; 
-        if (id_contenedor) { 
-            filter.id_contenedor = parseInt(id_contenedor); 
-        }
-
-        const alertas = await Alerta.find(filter)
+        const alertas = await Alerta.find(id_contenedor ? { id_contenedor: parseInt(id_contenedor) } : {})
             .sort({ timestamp_inicio: -1 })
             .limit(50)
             .lean(); 
@@ -169,8 +164,8 @@ const getAlertas = async (req, res) => {
                 tipo: alerta.tipo, 
                 mensaje: alerta.mensaje, 
                 activo: alerta.activo,
-                nivel: alerta.nivel,
-                peso: alerta.peso
+                nivel: alerta.datos_relacionados?.nivel_actual,
+                peso: alerta.datos_relacionados?.peso_actual
             }
         })); 
 
@@ -186,7 +181,7 @@ const getAlertas = async (req, res) => {
             message: 'Error al obtener alertas'
         }); 
     }
-}; 
+};
 
 function consolidarLecturas(pesos, niveles, electroiman) { 
     const todasLasLecturas = [];
