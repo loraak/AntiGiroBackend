@@ -1,13 +1,13 @@
 const { MongoClient } = require('mongodb');
 
-const MONGO_URI = process.env.MONGO_URI
+const MONGODB_URI = process.env.MONGODB_URI
 const DB_NAME = "SIMBI_iot";
 
 let db;
 
 async function connectDB() {
   if (!db) {
-    const client = await MongoClient.connect(MONGO_URI);
+    const client = await MongoClient.connect(MONGODB_URI);
     db = client.db(DB_NAME);
   }
   return db;
