@@ -102,10 +102,11 @@ const getUltima = async (req, res) => {
         const { id } = req.params; 
         const filter = { id_contenedor: parseInt(id) }; 
 
-        const [ultimoPeso, ultimoNivel, ultimoElectroiman] = await Promise.all([
+        const [ultimoPeso, ultimoNivel, ultimoElectroiman, alertasActivas] = await Promise.all([
             LecturaPeso.findOne(filter).sort({ timestamp: -1 }).lean(), 
             LecturaNivel.findOne(filter).sort({ timestamp: -1 }).lean(), 
-            EventoElectroiman.findOne(filter).sort({ timestamp: -1 }).lean()
+            EventoElectroiman.findOne(filter).sort({ timestamp: -1 }).lean(),
+            Alerta.find({ ...filter, activo: true}).sort({timestamp_inicio: -1}).lean()
         ]); 
 
         if (!ultimoPeso && !ultimoNivel && !ultimoElectroiman) { 
@@ -115,12 +116,23 @@ const getUltima = async (req, res) => {
             }); 
         }
 
+        const alertasFormateadas = alertasActivas.map(alerta => ({
+            _id: alerta._id, 
+            tipo: alerta.tipo,
+            severidad: alerta.severidad, 
+            mensaje: alerta.mensaje, 
+            activo: alerta.activo, 
+            timestamp_inicio: alerta.timestamp_inicio,
+            datos_relacionados: alerta.datos_relacionados
+        })); 
+
         const lectura = { 
             id_contenedor: parseInt(id), 
             timestamp: ultimoPeso?.timestamp || ultimoNivel?.timestamp || ultimoElectroiman?.timestamp, 
             peso: ultimoPeso?.peso || null, 
             nivel: ultimoNivel?.nivel || null, 
-            estado_electroiman: ultimoElectroiman?.estado || null
+            estado_electroiman: ultimoElectroiman?.estado || null, 
+            alertas: alertasFormateadas
         }; 
 
         res.json({

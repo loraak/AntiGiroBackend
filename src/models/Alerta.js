@@ -1,4 +1,4 @@
-const mongoose = require ('mongoose'); 
+const mongoose = require('mongoose'); 
 
 const alertaSchema = new mongoose.Schema({
     id_contenedor: { 
@@ -9,10 +9,10 @@ const alertaSchema = new mongoose.Schema({
     tipo: { 
         type: String, 
         required: [true, 'Tipo de alerta requerida'], 
-        enum: ['llenado', 'sobrepeso', 'sensor_error', 'mantenimiento', 'bateria_baja'], 
+        enum: ['llenado', 'sobrepeso', 'sensor_error', 'mantenimiento', 'bateria_baja', 'temperatura'], 
         index: true 
     }, 
-    nivel: { 
+    severidad: { 
         type: String, 
         required: true, 
         enum: ['info', 'warning', 'critical'], 
@@ -20,7 +20,7 @@ const alertaSchema = new mongoose.Schema({
     }, 
     mensaje: { 
         type: String, 
-        required: [false, 'El mensaje puede ser opcional']
+        required: false
     }, 
     activo: { 
         type: Boolean, 
@@ -45,15 +45,34 @@ const alertaSchema = new mongoose.Schema({
     collection: 'alertas'
 }); 
 
-alertaSchema.index({id_contenedor: 1, activo: 1, timestamp_inicio: -1}); 
-alertaSchema.index({activo: 1, nivel: 1, timestamp_inicio: -1}); 
+alertaSchema.index({ id_contenedor: 1, activo: 1, timestamp_inicio: -1 }); 
+alertaSchema.index({ activo: 1, severidad: 1, timestamp_inicio: -1 }); 
+alertaSchema.index({ id_contenedor: 1, tipo: 1, activo: 1 });
 
 alertaSchema.statics.getActivas = function(id_contenedor = null) {
     const query = { activo: true };
     if (id_contenedor) {
-    query.id_contenedor = id_contenedor;
-}
+        query.id_contenedor = id_contenedor;
+    }
     return this.find(query).sort({ timestamp_inicio: -1 }).lean();
+};
+
+alertaSchema.statics.getPorTipoYContenedor = function(id_contenedor, tipo, activo = true) {
+    return this.findOne({ 
+        id_contenedor, 
+        tipo, 
+        activo 
+    }).sort({ timestamp_inicio: -1 }).lean();
+};
+
+alertaSchema.statics.contarPorSeveridad = async function() {
+    return await this.aggregate([
+        { $match: { activo: true } },
+        { $group: { 
+            _id: '$severidad', 
+            cantidad: { $sum: 1 } 
+        }}
+    ]);
 };
 
 module.exports = mongoose.model('Alerta', alertaSchema);

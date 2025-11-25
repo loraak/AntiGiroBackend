@@ -1,12 +1,19 @@
 const LecturaPeso = require('../models/LecturaPeso');
 const LecturaNivel = require('../models/LecturaNivel');
 const EventoElectroiman = require('../models/EventoElectroiman');
-const Alerta = require('../models/Alerta');
+const AlertaService = require('../services/alertaServices');
 
 const crearLecturaPeso = async (req, res) => {
     try {
         const nueva = new LecturaPeso(req.body);
         await nueva.save();
+
+        await AlertaService.procesarAlertaPeso({
+            id_contenedor: nueva.id_contenedor,
+            peso: nueva.peso,
+            timestamp: nueva.timestamp
+        });
+
         res.status(201).json({
             success: true,
             mensaje: 'Lectura de peso guardada',
@@ -26,6 +33,13 @@ const crearLecturaNivel = async (req, res) => {
     try {
         const nueva = new LecturaNivel(req.body);
         await nueva.save();
+
+        await AlertaService.procesarAlertaNivel({
+            id_contenedor: nueva.id_contenedor,
+            nivel: nueva.nivel,
+            timestamp: nueva.timestamp
+        });
+
         res.status(201).json({
             success: true,
             mensaje: 'Lectura de nivel guardada',
@@ -60,20 +74,48 @@ const crearEventoElectroiman = async (req, res) => {
     }
 };
 
-const crearAlerta = async (req, res) => {
+// Obtener todas las alertas activas
+const obtenerAlertasActivas = async (req, res) => {
     try {
-        const nueva = new Alerta(req.body);
-        await nueva.save();
-        res.status(201).json({
+        const { id_contenedor } = req.query;
+        const alertas = await AlertaService.obtenerAlertasActivas(
+            id_contenedor ? parseInt(id_contenedor) : null
+        );
+
+        res.status(200).json({
             success: true,
-            mensaje: 'Alerta registrada',
-            data: nueva
+            cantidad: alertas.length,
+            data: alertas
         });
     } catch (error) {
-        console.error('Error registrando alerta:', error);
-        res.status(400).json({
+        console.error('Error obteniendo alertas activas:', error);
+        res.status(500).json({
             success: false,
-            message: 'Error registrando alerta',
+            message: 'Error obteniendo alertas activas',
+            error: error.message
+        });
+    }
+};
+
+// Obtener historial de alertas
+const obtenerHistorialAlertas = async (req, res) => {
+    try {
+        const { id_contenedor, limite } = req.query;
+        const historial = await AlertaService.obtenerHistorial(
+            id_contenedor ? parseInt(id_contenedor) : null,
+            limite ? parseInt(limite) : 50
+        );
+
+        res.status(200).json({
+            success: true,
+            cantidad: historial.length,
+            data: historial
+        });
+    } catch (error) {
+        console.error('Error obteniendo historial:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error obteniendo historial de alertas',
             error: error.message
         });
     }
@@ -83,5 +125,6 @@ module.exports = {
     crearLecturaPeso,
     crearLecturaNivel,
     crearEventoElectroiman,
-    crearAlerta
+    obtenerAlertasActivas,     
+    obtenerHistorialAlertas,   
 };
