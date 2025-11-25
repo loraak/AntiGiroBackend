@@ -58,7 +58,7 @@ const dataController = {
 const predictionController = {
   async guardarPrediccion(req, res) {
     try {
-      const { id_contenedor, prediccion_peso, modelo, estado, decision_auditable } = req.body;
+      const { id_contenedor, prediccion_peso, estado, confianza, decision_auditable, peso_actual, delta_peso } = req.body;
       
       const database = await connectDB();
       
@@ -66,9 +66,11 @@ const predictionController = {
         timestamp_registro: new Date(),
         id_contenedor: parseInt(id_contenedor),
         prediccion_peso,
-        modelo,
         estado,
-        decision_auditable
+        confianza, 
+        decision_auditable, 
+        peso_actual, 
+        delta_peso, 
       };
       
       await database.collection('predicciones_trazabilidad').insertOne(registro);
