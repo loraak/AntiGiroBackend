@@ -4,14 +4,6 @@ if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config();
 }
 
-console.log('Variables de entorno en producción:');
-console.log({
-    DB_HOST: process.env.DB_HOST,
-    DB_USER: process.env.DB_USER,
-    DB_NAME: process.env.DB_NAME,
-    DB_PORT: process.env.DB_PORT
-});
-
 const pool = mysql.createPool({ 
     host: process.env.DB_HOST || 'localhost', 
     user: process.env.DB_USER || 'root', 
@@ -33,9 +25,10 @@ const testConnectionMysql = async () => {
         const connection = await pool.getConnection(); 
         console.log('MySQL Conectado'); 
         connection.release(); 
+        return true; // ✅ Añadido
     } catch (error) { 
-        console.error('Error completo:', error); 
-        process.exit(1); 
+        console.error('Error completo al conectar MySQL:', error); 
+        return false; // ✅ Cambiado de process.exit(1)
     }
 };
 
@@ -54,17 +47,22 @@ const initDatabases = async () => {
     const mysqlConnected = await testConnectionMysql(); 
     const mongoConnected = await connectMongoDB();
     
+    console.log('Estado de conexiones:', {
+        MySQL: mysqlConnected ? '✓ Conectado' : '✗ No conectado',
+        MongoDB: mongoConnected ? '✓ Conectado' : '✗ No conectado'
+    });
+    
     if (!mysqlConnected && !mongoConnected) {
         console.error('No se pudo conectar a ninguna base de datos');
         process.exit(1);
     }
     
     if (!mysqlConnected) {
-        console.warn('Continuando sin MySQL');
+        console.warn('⚠️ Continuando sin MySQL');
     }
     
     if (!mongoConnected) {
-        console.warn('Continuando sin MongoDB');
+        console.warn('⚠️ Continuando sin MongoDB');
     }
 }
 
