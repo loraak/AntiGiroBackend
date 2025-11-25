@@ -153,12 +153,12 @@ const getAlertas = async (req, res) => {
         const alertasFormateadas = alertas.map(alerta => ({ 
             id_contenedor: alerta.id_contenedor, 
             timestamp: alerta.timestamp_inicio, 
-            peso: alerta.datos_relacionados?.peso_actual || null, 
-            nivel: alerta.datos_relacionados?.nivel_actual || null, 
             alerta: { 
                 tipo: alerta.tipo, 
                 mensaje: alerta.mensaje, 
-                activo: alerta.activo
+                activo: alerta.activo,
+                nivel: alerta.nivel,
+                peso: alerta.peso
             }
         })); 
 
